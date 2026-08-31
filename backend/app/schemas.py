@@ -56,6 +56,29 @@ class NoteOut(NoteBase):
     updated_at: datetime.datetime
 
 
+# ---------- Document ----------
+
+class DocumentOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    filename: str
+    num_chunks: int
+    created_at: datetime.datetime
+
+
+# ---------- Chat ----------
+
+class ChatRequest(BaseModel):
+    message: str
+    model: Optional[str] = None
+
+
+class ChatResponse(BaseModel):
+    answer: str
+    sources: list[str]
+
+
 # ---------- TrackerRow ----------
 
 class TrackerRowBase(BaseModel):

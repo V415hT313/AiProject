@@ -80,6 +80,33 @@ def delete_note(db: Session, note_id: int) -> bool:
     return True
 
 
+# ---------- Document ----------
+
+def get_document(db: Session, doc_id: int) -> Optional[models.Document]:
+    return db.get(models.Document, doc_id)
+
+
+def get_documents(db: Session, skip: int = 0, limit: int = 100):
+    return db.query(models.Document).order_by(models.Document.id.desc()).offset(skip).limit(limit).all()
+
+
+def create_document(db: Session, filename: str, num_chunks: int) -> models.Document:
+    db_doc = models.Document(filename=filename, num_chunks=num_chunks)
+    db.add(db_doc)
+    db.commit()
+    db.refresh(db_doc)
+    return db_doc
+
+
+def delete_document(db: Session, doc_id: int) -> bool:
+    db_doc = get_document(db, doc_id)
+    if db_doc is None:
+        return False
+    db.delete(db_doc)
+    db.commit()
+    return True
+
+
 # ---------- TrackerRow ----------
 
 def get_tracker_row(db: Session, row_id: int) -> Optional[models.TrackerRow]:

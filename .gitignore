@@ -5,3 +5,5 @@ __pycache__/
 server.log
 .env
 .requirements.txt
+chroma_db/
+uploads/
