@@ -28,7 +28,7 @@ df = pd.DataFrame(rows, columns=COLUMNS)
 edited_df = st.data_editor(
     df,
     num_rows="dynamic",
-    use_container_width=True,
+    width="stretch",
     column_config={
         "id": st.column_config.NumberColumn("ID", disabled=True),
         "date": st.column_config.TextColumn("Date", disabled=True),

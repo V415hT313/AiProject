@@ -9,24 +9,12 @@ render_sidebar()
 
 st.title("💬 AI Chatbot")
 
-# ---------- Sidebar: document management + model switcher ----------
+IMAGE_EXTENSIONS = {"png", "jpg", "jpeg"}
+
+# ---------- Sidebar: document library + model switcher ----------
 with st.sidebar:
     st.divider()
     st.subheader("Documents")
-
-    uploaded_file = st.file_uploader("Upload a document", type=["pdf", "txt", "md"])
-    if uploaded_file is not None and st.button("Ingest document"):
-        try:
-            with st.spinner("Ingesting document..."):
-                upload_document(
-                    uploaded_file.name,
-                    uploaded_file.getvalue(),
-                    uploaded_file.type or "application/octet-stream",
-                )
-            st.success(f"Ingested {uploaded_file.name}")
-            st.rerun()
-        except Exception as exc:
-            st.error(f"Failed to ingest document: {exc}")
 
     try:
         documents = get_documents()
@@ -35,7 +23,7 @@ with st.sidebar:
         documents = []
 
     if not documents:
-        st.caption("No documents uploaded yet.")
+        st.caption("No documents yet — attach one from the message box below.")
     else:
         for doc in documents:
             doc_col, delete_col = st.columns([4, 1])
@@ -73,35 +61,58 @@ for msg in st.session_state.messages:
         if msg.get("sources"):
             st.caption("📄 Sources: " + ", ".join(msg["sources"]))
 
-prompt = st.chat_input("Ask something about your documents...")
+user_input = st.chat_input(
+    "Ask something, or attach a document (PDF/TXT/MD)...",
+    accept_file="multiple",
+    file_type=["pdf", "txt", "md", "png", "jpg", "jpeg"],
+)
 
-if prompt:
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
-        st.markdown(prompt)
+if user_input:
+    prompt = user_input.text
+    attached_files = user_input.files
 
-    sources_holder: list[str] = []
-
-    def token_stream():
-        for line in chat_stream(prompt, model=selected_model):
-            try:
-                event = json.loads(line)
-            except json.JSONDecodeError:
-                continue
-            if event["type"] == "token":
-                yield event["content"]
-            elif event["type"] == "sources":
-                sources_holder.extend(event["sources"])
-
-    with st.chat_message("assistant"):
-        full_response = ""
+    for f in attached_files:
+        ext = f.name.rsplit(".", 1)[-1].lower() if "." in f.name else ""
+        if ext in IMAGE_EXTENSIONS:
+            st.warning(
+                f"Image support isn't implemented yet — skipped **{f.name}**. "
+                "Only PDF/TXT/MD documents can be ingested for now."
+            )
+            continue
         try:
-            full_response = st.write_stream(token_stream())
+            with st.spinner(f"Ingesting {f.name}..."):
+                upload_document(f.name, f.getvalue(), f.type or "application/octet-stream")
+            st.success(f"Ingested {f.name}")
         except Exception as exc:
-            st.error(f"Chat failed: {exc}")
-        if sources_holder:
-            st.caption("📄 Sources: " + ", ".join(sources_holder))
+            st.error(f"Failed to ingest {f.name}: {exc}")
 
-    st.session_state.messages.append(
-        {"role": "assistant", "content": full_response, "sources": sources_holder}
-    )
+    if prompt:
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        with st.chat_message("user"):
+            st.markdown(prompt)
+
+        sources_holder: list[str] = []
+
+        def token_stream():
+            for line in chat_stream(prompt, model=selected_model):
+                try:
+                    event = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if event["type"] == "token":
+                    yield event["content"]
+                elif event["type"] == "sources":
+                    sources_holder.extend(event["sources"])
+
+        with st.chat_message("assistant"):
+            full_response = ""
+            try:
+                full_response = st.write_stream(token_stream())
+            except Exception as exc:
+                st.error(f"Chat failed: {exc}")
+            if sources_holder:
+                st.caption("📄 Sources: " + ", ".join(sources_holder))
+
+        st.session_state.messages.append(
+            {"role": "assistant", "content": full_response, "sources": sources_holder}
+        )
