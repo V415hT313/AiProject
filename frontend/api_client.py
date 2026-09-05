@@ -125,6 +125,12 @@ def delete_document(doc_id: int) -> None:
 
 # ---------- Chat ----------
 
+def get_models() -> list[str]:
+    resp = requests.get(_url("/chat/models"), timeout=TIMEOUT)
+    resp.raise_for_status()
+    return resp.json()
+
+
 def chat(message: str, model: str | None = None) -> dict:
     resp = requests.post(_url("/chat/"), json={"message": message, "model": model}, timeout=120)
     resp.raise_for_status()

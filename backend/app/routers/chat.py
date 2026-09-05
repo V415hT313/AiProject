@@ -1,12 +1,21 @@
 import json
 
+import requests
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 
-from .. import schemas
+from .. import config, schemas
 from ..rag.chain import build_rag_chain
 
 router = APIRouter(prefix="/chat", tags=["chat"])
+
+
+@router.get("/models", response_model=list[str])
+def list_models():
+    resp = requests.get(f"{config.OLLAMA_BASE_URL}/api/tags", timeout=10)
+    resp.raise_for_status()
+    models = resp.json().get("models", [])
+    return [m["name"] for m in models if "completion" in m.get("capabilities", [])]
 
 
 def _sources_from_docs(docs) -> list[str]:
