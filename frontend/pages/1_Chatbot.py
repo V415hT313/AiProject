@@ -92,6 +92,7 @@ if user_input:
             st.markdown(prompt)
 
         sources_holder: list[str] = []
+        error_holder: list[str] = []
 
         def token_stream():
             for line in chat_stream(prompt, model=selected_model):
@@ -103,13 +104,17 @@ if user_input:
                     yield event["content"]
                 elif event["type"] == "sources":
                     sources_holder.extend(event["sources"])
+                elif event["type"] == "error":
+                    error_holder.append(event["message"])
 
         with st.chat_message("assistant"):
             full_response = ""
             try:
                 full_response = st.write_stream(token_stream())
             except Exception as exc:
-                st.error(f"Chat failed: {exc}")
+                error_holder.append(str(exc))
+            if error_holder:
+                st.error(error_holder[0])
             if sources_holder:
                 st.caption("📄 Sources: " + ", ".join(sources_holder))
 

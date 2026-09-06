@@ -18,7 +18,8 @@ COLUMNS = ["id", "name", "category", "value", "unit", "date", "notes"]
 EDITABLE_FIELDS = ["name", "category", "value", "unit", "notes"]
 
 try:
-    rows = get_tracker_rows()
+    with st.spinner("Loading tracker rows..."):
+        rows = get_tracker_rows()
 except Exception as exc:
     st.error(f"Could not load tracker rows: {exc}")
     rows = []
@@ -41,38 +42,39 @@ col_save, col_export = st.columns([1, 1])
 
 with col_save:
     if st.button("💾 Save changes"):
-        original_by_id = {row["id"]: row for row in rows}
-        edited_ids = set()
+        with st.spinner("Saving changes..."):
+            original_by_id = {row["id"]: row for row in rows}
+            edited_ids = set()
 
-        for _, edited_row in edited_df.iterrows():
-            row_id = edited_row.get("id")
-            fields = {
-                "name": edited_row.get("name") or "",
-                "category": edited_row.get("category") or None,
-                "value": float(edited_row["value"]) if pd.notna(edited_row.get("value")) else None,
-                "unit": edited_row.get("unit") or None,
-                "notes": edited_row.get("notes") or None,
-            }
+            for _, edited_row in edited_df.iterrows():
+                row_id = edited_row.get("id")
+                fields = {
+                    "name": edited_row.get("name") or "",
+                    "category": edited_row.get("category") or None,
+                    "value": float(edited_row["value"]) if pd.notna(edited_row.get("value")) else None,
+                    "unit": edited_row.get("unit") or None,
+                    "notes": edited_row.get("notes") or None,
+                }
 
-            try:
-                if pd.isna(row_id):
-                    if fields["name"]:
-                        create_tracker_row(**fields)
-                else:
-                    row_id = int(row_id)
-                    edited_ids.add(row_id)
-                    original = original_by_id.get(row_id, {})
-                    if any(original.get(k) != v for k, v in fields.items()):
-                        update_tracker_row(row_id, **fields)
-            except Exception as exc:
-                st.error(f"Failed to save row: {exc}")
-
-        for row_id in original_by_id:
-            if row_id not in edited_ids:
                 try:
-                    delete_tracker_row(row_id)
+                    if pd.isna(row_id):
+                        if fields["name"]:
+                            create_tracker_row(**fields)
+                    else:
+                        row_id = int(row_id)
+                        edited_ids.add(row_id)
+                        original = original_by_id.get(row_id, {})
+                        if any(original.get(k) != v for k, v in fields.items()):
+                            update_tracker_row(row_id, **fields)
                 except Exception as exc:
-                    st.error(f"Failed to delete row {row_id}: {exc}")
+                    st.error(f"Failed to save row: {exc}")
+
+            for row_id in original_by_id:
+                if row_id not in edited_ids:
+                    try:
+                        delete_tracker_row(row_id)
+                    except Exception as exc:
+                        st.error(f"Failed to delete row {row_id}: {exc}")
 
         st.rerun()
 

@@ -18,7 +18,8 @@ with st.form("new_note_form", clear_on_submit=True):
             st.error("Title is required.")
         else:
             try:
-                create_note(title.strip(), content)
+                with st.spinner("Adding note..."):
+                    create_note(title.strip(), content)
                 st.rerun()
             except Exception as exc:
                 st.error(f"Failed to create note: {exc}")
@@ -26,7 +27,8 @@ with st.form("new_note_form", clear_on_submit=True):
 st.divider()
 
 try:
-    notes = get_notes()
+    with st.spinner("Loading notes..."):
+        notes = get_notes()
 except Exception as exc:
     st.error(f"Could not load notes: {exc}")
     notes = []
@@ -52,14 +54,16 @@ else:
             with save_col:
                 if st.button("Save", key=f"save_{note['id']}"):
                     try:
-                        update_note(note["id"], content=new_content)
+                        with st.spinner("Saving..."):
+                            update_note(note["id"], content=new_content)
                         st.rerun()
                     except Exception as exc:
                         st.error(f"Failed to save note: {exc}")
             with delete_col:
                 if st.button("Delete", key=f"delete_{note['id']}"):
                     try:
-                        delete_note(note["id"])
+                        with st.spinner("Deleting..."):
+                            delete_note(note["id"])
                         st.rerun()
                     except Exception as exc:
                         st.error(f"Failed to delete note: {exc}")

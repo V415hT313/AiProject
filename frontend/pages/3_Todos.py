@@ -22,7 +22,8 @@ with st.form("new_todo_form", clear_on_submit=True):
             st.error("Title is required.")
         else:
             try:
-                create_todo(title.strip(), description.strip() or None, priority)
+                with st.spinner("Adding todo..."):
+                    create_todo(title.strip(), description.strip() or None, priority)
                 st.rerun()
             except Exception as exc:
                 st.error(f"Failed to create todo: {exc}")
@@ -30,7 +31,8 @@ with st.form("new_todo_form", clear_on_submit=True):
 st.divider()
 
 try:
-    todos = get_todos()
+    with st.spinner("Loading todos..."):
+        todos = get_todos()
 except Exception as exc:
     st.error(f"Could not load todos: {exc}")
     todos = []
@@ -48,7 +50,8 @@ else:
             )
             if new_done != todo["done"]:
                 try:
-                    update_todo(todo["id"], done=new_done)
+                    with st.spinner("Updating..."):
+                        update_todo(todo["id"], done=new_done)
                     st.rerun()
                 except Exception as exc:
                     st.error(f"Failed to update todo: {exc}")
@@ -63,7 +66,8 @@ else:
         with col_delete:
             if st.button("🗑️", key=f"delete_{todo['id']}"):
                 try:
-                    delete_todo(todo["id"])
+                    with st.spinner("Deleting..."):
+                        delete_todo(todo["id"])
                     st.rerun()
                 except Exception as exc:
                     st.error(f"Failed to delete todo: {exc}")
