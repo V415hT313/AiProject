@@ -3,8 +3,10 @@ import json
 import streamlit as st
 
 from api_client import chat_stream, delete_document, get_documents, get_models, upload_document
+from auth_ui import require_login
 from sidebar import render_sidebar
 
+require_login()
 render_sidebar()
 
 st.title("💬 AI Chatbot")

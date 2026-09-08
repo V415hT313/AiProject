@@ -13,8 +13,8 @@ SYSTEM_PROMPT = (
 )
 
 
-def get_retriever(k: int = 4):
-    return get_vectorstore().as_retriever(search_kwargs={"k": k})
+def get_retriever(user_id: int, k: int = 4):
+    return get_vectorstore().as_retriever(search_kwargs={"k": k, "filter": {"user_id": user_id}})
 
 
 def get_llm(model: str | None = None, streaming: bool = False) -> ChatOllama:
@@ -29,8 +29,8 @@ def format_docs(docs) -> str:
     return "\n\n".join(doc.page_content for doc in docs)
 
 
-def build_rag_chain(model: str | None = None, streaming: bool = False):
-    retriever = get_retriever()
+def build_rag_chain(user_id: int, model: str | None = None, streaming: bool = False):
+    retriever = get_retriever(user_id=user_id)
     llm = get_llm(model=model, streaming=streaming)
     prompt = ChatPromptTemplate.from_messages(
         [("system", SYSTEM_PROMPT), ("human", "{question}")]

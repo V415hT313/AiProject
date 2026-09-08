@@ -19,13 +19,14 @@ def load_documents(file_path: str):
     raise ValueError(f"Unsupported file type: {ext}")
 
 
-def ingest_file(file_path: str, doc_id: int, filename: str) -> int:
+def ingest_file(file_path: str, doc_id: int, filename: str, user_id: int) -> int:
     documents = load_documents(file_path)
     chunks = _splitter.split_documents(documents)
 
     for chunk in chunks:
         chunk.metadata["doc_id"] = doc_id
         chunk.metadata["source"] = filename
+        chunk.metadata["user_id"] = user_id
 
     if chunks:
         ids = [f"{doc_id}-{i}" for i in range(len(chunks))]
@@ -34,6 +35,6 @@ def ingest_file(file_path: str, doc_id: int, filename: str) -> int:
     return len(chunks)
 
 
-def delete_document_vectors(doc_id: int) -> None:
+def delete_document_vectors(doc_id: int, user_id: int) -> None:
     vectorstore = get_vectorstore()
-    vectorstore._collection.delete(where={"doc_id": doc_id})
+    vectorstore._collection.delete(where={"$and": [{"doc_id": doc_id}, {"user_id": user_id}]})

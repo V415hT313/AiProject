@@ -1,8 +1,10 @@
 import streamlit as st
 
 from api_client import create_note, delete_note, get_notes, update_note
+from auth_ui import require_login
 from sidebar import render_sidebar
 
+require_login()
 render_sidebar()
 
 st.title("📝 Notes")

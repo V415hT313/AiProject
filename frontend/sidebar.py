@@ -14,4 +14,12 @@ def render_sidebar() -> None:
             st.error("Backend unreachable", icon="⚠️")
             st.caption("Start the FastAPI server, then refresh this page.")
 
+        username = st.session_state.get("username")
+        if username:
+            st.caption(f"👤 {username}")
+            if st.button("Log out", key="logout_button", width="stretch"):
+                st.session_state.pop("auth_token", None)
+                st.session_state.pop("username", None)
+                st.rerun()
+
         st.divider()

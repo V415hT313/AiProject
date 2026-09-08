@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse
 
 from . import config, models
 from .database import engine
-from .routers import chat, documents, notes, todos, tracker
+from .routers import auth, chat, documents, notes, todos, tracker
 
 logger = logging.getLogger("aiproject")
 
@@ -30,6 +30,7 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
     logger.exception("Unhandled error on %s %s", request.method, request.url.path)
     return JSONResponse(status_code=500, content={"detail": "Internal server error."})
 
+app.include_router(auth.router)
 app.include_router(todos.router)
 app.include_router(notes.router)
 app.include_router(tracker.router)

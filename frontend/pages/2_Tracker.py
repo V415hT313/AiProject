@@ -4,8 +4,10 @@ import pandas as pd
 import streamlit as st
 
 from api_client import create_tracker_row, delete_tracker_row, get_tracker_rows, update_tracker_row
+from auth_ui import require_login
 from sidebar import render_sidebar
 
+require_login()
 render_sidebar()
 
 st.title("📊 Tracker")

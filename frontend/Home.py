@@ -1,9 +1,11 @@
 import streamlit as st
 
+from auth_ui import require_login
 from sidebar import render_sidebar
 from stats import get_document_count, get_open_todo_count, get_recent_notes
 
 st.set_page_config(page_title="AiProject", page_icon="🤖", layout="wide")
+require_login()
 render_sidebar()
 
 st.title("🏠 Home")

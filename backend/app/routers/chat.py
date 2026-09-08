@@ -1,10 +1,10 @@
 import json
 
 import requests
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 
-from .. import config, schemas
+from .. import auth, config, models, schemas
 from ..rag.chain import build_rag_chain
 
 router = APIRouter(prefix="/chat", tags=["chat"])
@@ -16,15 +16,15 @@ OLLAMA_UNREACHABLE_MESSAGE = (
 
 
 @router.get("/models", response_model=list[str])
-def list_models():
+def list_models(current_user: models.User = Depends(auth.get_current_user)):
     try:
         resp = requests.get(f"{config.OLLAMA_BASE_URL}/api/tags", timeout=10)
         resp.raise_for_status()
     except requests.RequestException as exc:
         raise HTTPException(status_code=503, detail=OLLAMA_UNREACHABLE_MESSAGE) from exc
 
-    models = resp.json().get("models", [])
-    return [m["name"] for m in models if "completion" in m.get("capabilities", [])]
+    ollama_models = resp.json().get("models", [])
+    return [m["name"] for m in ollama_models if "completion" in m.get("capabilities", [])]
 
 
 def _sources_from_docs(docs) -> list[str]:
@@ -37,9 +37,9 @@ def _sources_from_docs(docs) -> list[str]:
 
 
 @router.post("/", response_model=schemas.ChatResponse)
-def chat(request: schemas.ChatRequest):
+def chat(request: schemas.ChatRequest, current_user: models.User = Depends(auth.get_current_user)):
     try:
-        chain, retriever = build_rag_chain(model=request.model)
+        chain, retriever = build_rag_chain(user_id=current_user.id, model=request.model)
         docs = retriever.invoke(request.message)
         answer = chain.invoke(request.message)
     except Exception as exc:
@@ -49,10 +49,12 @@ def chat(request: schemas.ChatRequest):
 
 
 @router.post("/stream")
-def chat_stream(request: schemas.ChatRequest):
+def chat_stream(request: schemas.ChatRequest, current_user: models.User = Depends(auth.get_current_user)):
+    user_id = current_user.id
+
     def event_generator():
         try:
-            chain, retriever = build_rag_chain(model=request.model, streaming=True)
+            chain, retriever = build_rag_chain(user_id=user_id, model=request.model, streaming=True)
             docs = retriever.invoke(request.message)
             yield json.dumps({"type": "sources", "sources": _sources_from_docs(docs)}) + "\n"
             for token in chain.stream(request.message):
