@@ -15,7 +15,7 @@ models.Base.metadata.create_all(bind=engine)
 os.makedirs(config.UPLOAD_DIR, exist_ok=True)
 os.makedirs(config.CHROMA_DIR, exist_ok=True)
 
-app = FastAPI(title="AiProject API", version="0.1.0")
+app = FastAPI(title="R2D2 API", version="0.1.0")
 
 app.add_middleware(
     CORSMiddleware,

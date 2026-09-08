@@ -8,7 +8,7 @@ def require_login() -> None:
     if st.session_state.get("auth_token"):
         return
 
-    st.title("🤖 AiProject")
+    st.title("🤖 R2D2")
     st.caption("Sign in to continue.")
 
     login_tab, register_tab = st.tabs(["Login", "Register"])

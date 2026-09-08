@@ -5,7 +5,7 @@ from api_client import check_health
 
 def render_sidebar() -> None:
     with st.sidebar:
-        st.title("🤖 AiProject")
+        st.title("🤖 R2D2")
         st.caption("Your local AI-powered assistant")
 
         if check_health():
