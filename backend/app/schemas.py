@@ -29,6 +29,15 @@ class Token(BaseModel):
     token_type: str = "bearer"
 
 
+class ForgotPasswordRequest(BaseModel):
+    username: str
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str = Field(min_length=8)
+
+
 # ---------- Todo ----------
 
 class TodoBase(BaseModel):
@@ -94,9 +103,15 @@ class DocumentOut(BaseModel):
 
 # ---------- Chat ----------
 
+class ChatMessage(BaseModel):
+    role: str
+    content: str
+
+
 class ChatRequest(BaseModel):
     message: str
     model: Optional[str] = None
+    history: list[ChatMessage] = []
 
 
 class ChatResponse(BaseModel):

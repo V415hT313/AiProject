@@ -1,5 +1,6 @@
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from langchain_core.output_parsers import StrOutputParser
-from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables import RunnablePassthrough
 from langchain_ollama import ChatOllama
 
@@ -29,15 +30,31 @@ def format_docs(docs) -> str:
     return "\n\n".join(doc.page_content for doc in docs)
 
 
+def to_lc_messages(history: list[dict]) -> list[BaseMessage]:
+    messages: list[BaseMessage] = []
+    for turn in history:
+        if turn["role"] == "user":
+            messages.append(HumanMessage(content=turn["content"]))
+        else:
+            messages.append(AIMessage(content=turn["content"]))
+    return messages
+
+
 def build_rag_chain(user_id: int, model: str | None = None, streaming: bool = False):
     retriever = get_retriever(user_id=user_id)
     llm = get_llm(model=model, streaming=streaming)
     prompt = ChatPromptTemplate.from_messages(
-        [("system", SYSTEM_PROMPT), ("human", "{question}")]
+        [
+            ("system", SYSTEM_PROMPT),
+            MessagesPlaceholder("history"),
+            ("human", "{question}"),
+        ]
     )
 
     chain = (
-        {"context": retriever | format_docs, "question": RunnablePassthrough()}
+        RunnablePassthrough.assign(
+            context=lambda x: format_docs(retriever.invoke(x["question"]))
+        )
         | prompt
         | llm
         | StrOutputParser()

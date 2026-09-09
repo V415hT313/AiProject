@@ -1,8 +1,9 @@
+import datetime
 from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from . import auth, models, schemas
+from . import auth, config, models, schemas
 
 # ---------- User ----------
 
@@ -16,6 +17,43 @@ def create_user(db: Session, user: schemas.UserCreate) -> models.User:
     db.commit()
     db.refresh(db_user)
     return db_user
+
+
+def update_user_password(db: Session, user: models.User, new_password: str) -> None:
+    user.hashed_password = auth.hash_password(new_password)
+    db.commit()
+
+
+# ---------- PasswordResetToken ----------
+
+def create_password_reset_token(db: Session, user_id: int) -> models.PasswordResetToken:
+    token = models.PasswordResetToken(
+        user_id=user_id,
+        token=auth.generate_reset_token(),
+        expires_at=datetime.datetime.utcnow()
+        + datetime.timedelta(minutes=config.RESET_TOKEN_EXPIRE_MINUTES),
+    )
+    db.add(token)
+    db.commit()
+    db.refresh(token)
+    return token
+
+
+def get_valid_reset_token(db: Session, token: str) -> Optional[models.PasswordResetToken]:
+    return (
+        db.query(models.PasswordResetToken)
+        .filter(
+            models.PasswordResetToken.token == token,
+            models.PasswordResetToken.used.is_(False),
+            models.PasswordResetToken.expires_at > datetime.datetime.utcnow(),
+        )
+        .first()
+    )
+
+
+def mark_reset_token_used(db: Session, reset_token: models.PasswordResetToken) -> None:
+    reset_token.used = True
+    db.commit()
 
 
 # ---------- Todo ----------

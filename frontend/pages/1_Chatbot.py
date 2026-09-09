@@ -89,6 +89,12 @@ if user_input:
             st.error(f"Failed to ingest {f.name}: {exc}")
 
     if prompt:
+        # capture prior turns before appending this new one, so the model gets
+        # the conversation-so-far as context (capped to keep the prompt bounded)
+        history_payload = [
+            {"role": m["role"], "content": m["content"]} for m in st.session_state.messages[-20:]
+        ]
+
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
             st.markdown(prompt)
@@ -97,7 +103,7 @@ if user_input:
         error_holder: list[str] = []
 
         def token_stream():
-            for line in chat_stream(prompt, model=selected_model):
+            for line in chat_stream(prompt, model=selected_model, history=history_payload):
                 try:
                     event = json.loads(line)
                 except json.JSONDecodeError:

@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 
 from .. import auth, config, models, schemas
-from ..rag.chain import build_rag_chain
+from ..rag.chain import build_rag_chain, to_lc_messages
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 
@@ -41,7 +41,8 @@ def chat(request: schemas.ChatRequest, current_user: models.User = Depends(auth.
     try:
         chain, retriever = build_rag_chain(user_id=current_user.id, model=request.model)
         docs = retriever.invoke(request.message)
-        answer = chain.invoke(request.message)
+        history = to_lc_messages([m.model_dump() for m in request.history])
+        answer = chain.invoke({"question": request.message, "history": history})
     except Exception as exc:
         raise HTTPException(status_code=503, detail=f"{OLLAMA_UNREACHABLE_MESSAGE} ({exc})") from exc
 
@@ -51,13 +52,14 @@ def chat(request: schemas.ChatRequest, current_user: models.User = Depends(auth.
 @router.post("/stream")
 def chat_stream(request: schemas.ChatRequest, current_user: models.User = Depends(auth.get_current_user)):
     user_id = current_user.id
+    history = to_lc_messages([m.model_dump() for m in request.history])
 
     def event_generator():
         try:
             chain, retriever = build_rag_chain(user_id=user_id, model=request.model, streaming=True)
             docs = retriever.invoke(request.message)
             yield json.dumps({"type": "sources", "sources": _sources_from_docs(docs)}) + "\n"
-            for token in chain.stream(request.message):
+            for token in chain.stream({"question": request.message, "history": history}):
                 yield json.dumps({"type": "token", "content": token}) + "\n"
             yield json.dumps({"type": "done"}) + "\n"
         except Exception as exc:

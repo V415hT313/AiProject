@@ -1,4 +1,7 @@
 import datetime
+import secrets
+import smtplib
+from email.mime.text import MIMEText
 
 import bcrypt
 import jwt
@@ -28,6 +31,28 @@ def create_access_token(user_id: int, username: str) -> str:
 
 def decode_access_token(token: str) -> dict:
     return jwt.decode(token, config.JWT_SECRET_KEY, algorithms=[config.JWT_ALGORITHM])
+
+
+def generate_reset_token() -> str:
+    return secrets.token_urlsafe(32)
+
+
+def send_password_reset_email(to_email: str, reset_link: str) -> None:
+    body = (
+        "You requested a password reset for your R2D2 account.\n\n"
+        f"Click the link below to set a new password (expires in {config.RESET_TOKEN_EXPIRE_MINUTES} minutes):\n"
+        f"{reset_link}\n\n"
+        "If you didn't request this, you can safely ignore this email."
+    )
+    message = MIMEText(body)
+    message["Subject"] = "Reset your R2D2 password"
+    message["From"] = config.SMTP_USERNAME
+    message["To"] = to_email
+
+    with smtplib.SMTP(config.SMTP_HOST, config.SMTP_PORT) as server:
+        server.starttls()
+        server.login(config.SMTP_USERNAME, config.SMTP_APP_PASSWORD)
+        server.sendmail(config.SMTP_USERNAME, [to_email], message.as_string())
 
 
 def get_current_user(

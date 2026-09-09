@@ -53,6 +53,22 @@ def get_me() -> dict:
     return resp.json()
 
 
+def forgot_password(username: str) -> dict:
+    resp = requests.post(_url("/auth/forgot-password"), json={"username": username}, timeout=TIMEOUT)
+    resp.raise_for_status()
+    return resp.json()
+
+
+def reset_password(token: str, new_password: str) -> dict:
+    resp = requests.post(
+        _url("/auth/reset-password"),
+        json={"token": token, "new_password": new_password},
+        timeout=TIMEOUT,
+    )
+    resp.raise_for_status()
+    return resp.json()
+
+
 # ---------- Todos ----------
 
 def get_todos() -> list[dict]:
@@ -167,18 +183,21 @@ def get_models() -> list[str]:
     return resp.json()
 
 
-def chat(message: str, model: str | None = None) -> dict:
+def chat(message: str, model: str | None = None, history: list[dict] | None = None) -> dict:
     resp = requests.post(
-        _url("/chat/"), json={"message": message, "model": model}, headers=_auth_headers(), timeout=120
+        _url("/chat/"),
+        json={"message": message, "model": model, "history": history or []},
+        headers=_auth_headers(),
+        timeout=120,
     )
     resp.raise_for_status()
     return resp.json()
 
 
-def chat_stream(message: str, model: str | None = None):
+def chat_stream(message: str, model: str | None = None, history: list[dict] | None = None):
     with requests.post(
         _url("/chat/stream"),
-        json={"message": message, "model": model},
+        json={"message": message, "model": model, "history": history or []},
         headers=_auth_headers(),
         timeout=120,
         stream=True,
