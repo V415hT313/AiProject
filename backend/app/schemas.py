@@ -124,6 +124,7 @@ class ChatResponse(BaseModel):
 class TrackerRowBase(BaseModel):
     name: str
     category: Optional[str] = None
+    status: str = Field(default="Start", pattern="^(Start|In Progress|Done)$")
     value: Optional[float] = None
     unit: Optional[str] = None
     date: Optional[datetime.datetime] = None
@@ -137,6 +138,7 @@ class TrackerRowCreate(TrackerRowBase):
 class TrackerRowUpdate(BaseModel):
     name: Optional[str] = None
     category: Optional[str] = None
+    status: Optional[str] = Field(default=None, pattern="^(Start|In Progress|Done)$")
     value: Optional[float] = None
     unit: Optional[str] = None
     date: Optional[datetime.datetime] = None

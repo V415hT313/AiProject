@@ -16,8 +16,9 @@ st.caption(
     "select a row and press delete to remove it, then click Save."
 )
 
-COLUMNS = ["id", "name", "category", "value", "unit", "date", "notes"]
-EDITABLE_FIELDS = ["name", "category", "value", "unit", "notes"]
+COLUMNS = ["id", "name", "category", "status", "value", "unit", "date", "notes"]
+DISPLAY_COLUMNS = ["name", "category", "status", "value", "unit", "date", "notes"]
+STATUS_OPTIONS = ["Start", "In Progress", "Done"]
 
 try:
     with st.spinner("Loading tracker rows..."):
@@ -27,18 +28,37 @@ except Exception as exc:
     rows = []
 
 df = pd.DataFrame(rows, columns=COLUMNS)
+df["date"] = pd.to_datetime(df["date"]).dt.date
 
 edited_df = st.data_editor(
     df,
     num_rows="dynamic",
     width="stretch",
+    column_order=DISPLAY_COLUMNS,
     column_config={
-        "id": st.column_config.NumberColumn("ID", disabled=True),
-        "date": st.column_config.TextColumn("Date", disabled=True),
+        "status": st.column_config.SelectboxColumn(
+            "Status", options=STATUS_OPTIONS, default="Start", required=True
+        ),
         "value": st.column_config.NumberColumn("Value"),
+        "date": st.column_config.DateColumn("Date", format="YYYY-MM-DD"),
     },
     key="tracker_editor",
 )
+
+
+def _normalize_original_date(value) -> str | None:
+    return str(value)[:10] if value else None
+
+
+def _date_value_to_iso(value) -> str | None:
+    if value is None or (isinstance(value, str) and not value.strip()):
+        return None
+    if isinstance(value, str):
+        return value[:10]
+    if pd.isna(value):
+        return None
+    return value.isoformat()
+
 
 col_save, col_export = st.columns([1, 1])
 
@@ -50,11 +70,14 @@ with col_save:
 
             for _, edited_row in edited_df.iterrows():
                 row_id = edited_row.get("id")
+                date_val = edited_row.get("date")
                 fields = {
                     "name": edited_row.get("name") or "",
                     "category": edited_row.get("category") or None,
+                    "status": edited_row.get("status") or "Start",
                     "value": float(edited_row["value"]) if pd.notna(edited_row.get("value")) else None,
                     "unit": edited_row.get("unit") or None,
+                    "date": _date_value_to_iso(date_val),
                     "notes": edited_row.get("notes") or None,
                 }
 
@@ -66,7 +89,11 @@ with col_save:
                         row_id = int(row_id)
                         edited_ids.add(row_id)
                         original = original_by_id.get(row_id, {})
-                        if any(original.get(k) != v for k, v in fields.items()):
+                        original_normalized = {
+                            **original,
+                            "date": _normalize_original_date(original.get("date")),
+                        }
+                        if any(original_normalized.get(k) != v for k, v in fields.items()):
                             update_tracker_row(row_id, **fields)
                 except Exception as exc:
                     st.error(f"Failed to save row: {exc}")
@@ -82,8 +109,19 @@ with col_save:
 
 with col_export:
     if rows:
+        export_df = edited_df.drop(columns=["id"])
         buffer = BytesIO()
-        df.drop(columns=["id"]).to_excel(buffer, index=False, engine="openpyxl")
+        with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
+            export_df.to_excel(writer, index=False, sheet_name="Tracker")
+            worksheet = writer.sheets["Tracker"]
+            for i, col in enumerate(export_df.columns, start=1):
+                max_len = max(
+                    export_df[col].astype(str).map(len).max() if not export_df.empty else 0,
+                    len(str(col)),
+                )
+                worksheet.column_dimensions[worksheet.cell(row=1, column=i).column_letter].width = (
+                    max_len + 2
+                )
         st.download_button(
             "⬇️ Export to Excel",
             data=buffer.getvalue(),

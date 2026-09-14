@@ -66,6 +66,7 @@ class TrackerRow(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     name = Column(String(255), nullable=False)
     category = Column(String(100), nullable=True)
+    status = Column(String(20), nullable=False, default="Start")
     value = Column(Float, nullable=True)
     unit = Column(String(50), nullable=True)
     date = Column(DateTime, default=datetime.datetime.utcnow)
