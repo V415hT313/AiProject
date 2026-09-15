@@ -112,11 +112,32 @@ class ChatRequest(BaseModel):
     message: str
     model: Optional[str] = None
     history: list[ChatMessage] = []
+    session_id: Optional[int] = None
 
 
 class ChatResponse(BaseModel):
     answer: str
     sources: list[str]
+    session_id: int
+
+
+class ChatSessionOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    title: str
+    created_at: datetime.datetime
+    updated_at: datetime.datetime
+
+
+class ChatMessageOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    role: str
+    content: str
+    sources: list[str] = []
+    created_at: datetime.datetime
 
 
 # ---------- TrackerRow ----------

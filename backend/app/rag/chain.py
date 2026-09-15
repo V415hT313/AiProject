@@ -14,8 +14,13 @@ SYSTEM_PROMPT = (
 )
 
 
-def get_retriever(user_id: int, k: int = 4):
-    return get_vectorstore().as_retriever(search_kwargs={"k": k, "filter": {"user_id": user_id}})
+def get_retriever(user_id: int, session_id: int, k: int = 4):
+    return get_vectorstore().as_retriever(
+        search_kwargs={
+            "k": k,
+            "filter": {"$and": [{"user_id": user_id}, {"session_id": session_id}]},
+        }
+    )
 
 
 def get_llm(model: str | None = None, streaming: bool = False) -> ChatOllama:
@@ -40,8 +45,8 @@ def to_lc_messages(history: list[dict]) -> list[BaseMessage]:
     return messages
 
 
-def build_rag_chain(user_id: int, model: str | None = None, streaming: bool = False):
-    retriever = get_retriever(user_id=user_id)
+def build_rag_chain(user_id: int, session_id: int, model: str | None = None, streaming: bool = False):
+    retriever = get_retriever(user_id=user_id, session_id=session_id)
     llm = get_llm(model=model, streaming=streaming)
     prompt = ChatPromptTemplate.from_messages(
         [

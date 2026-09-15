@@ -2,7 +2,7 @@ import os
 import pathlib
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from .. import auth, config, crud, models, schemas
@@ -12,20 +12,32 @@ from ..rag.ingest import SUPPORTED_EXTENSIONS, delete_document_vectors, ingest_f
 router = APIRouter(prefix="/documents", tags=["documents"])
 
 
+def _get_owned_session(db: Session, session_id: int, user_id: int) -> models.ChatSession:
+    session = crud.get_chat_session(db, session_id, user_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Chat session not found")
+    return session
+
+
 @router.get("/", response_model=list[schemas.DocumentOut])
 def list_documents(
+    session_id: int,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user),
 ):
-    return crud.get_documents(db, user_id=current_user.id)
+    _get_owned_session(db, session_id, current_user.id)
+    return crud.get_documents(db, user_id=current_user.id, session_id=session_id)
 
 
 @router.post("/upload", response_model=schemas.DocumentOut, status_code=201)
 async def upload_document(
     file: UploadFile,
+    session_id: int = Form(...),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user),
 ):
+    _get_owned_session(db, session_id, current_user.id)
+
     ext = pathlib.Path(file.filename).suffix.lower()
     if ext not in SUPPORTED_EXTENSIONS:
         raise HTTPException(
@@ -38,10 +50,18 @@ async def upload_document(
     with open(temp_path, "wb") as f:
         f.write(await file.read())
 
-    db_doc = crud.create_document(db, filename=file.filename, num_chunks=0, user_id=current_user.id)
+    db_doc = crud.create_document(
+        db, filename=file.filename, num_chunks=0, user_id=current_user.id, session_id=session_id
+    )
 
     try:
-        num_chunks = ingest_file(temp_path, doc_id=db_doc.id, filename=file.filename, user_id=current_user.id)
+        num_chunks = ingest_file(
+            temp_path,
+            doc_id=db_doc.id,
+            filename=file.filename,
+            user_id=current_user.id,
+            session_id=session_id,
+        )
     except Exception as exc:
         crud.delete_document(db, db_doc.id, user_id=current_user.id)
         raise HTTPException(status_code=500, detail=f"Failed to ingest document: {exc}") from exc

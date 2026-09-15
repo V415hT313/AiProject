@@ -1,4 +1,5 @@
 import datetime
+import json
 from typing import Optional
 
 from sqlalchemy.orm import Session
@@ -156,10 +157,10 @@ def get_document(db: Session, doc_id: int, user_id: int) -> Optional[models.Docu
     )
 
 
-def get_documents(db: Session, user_id: int, skip: int = 0, limit: int = 100):
+def get_documents(db: Session, user_id: int, session_id: int, skip: int = 0, limit: int = 100):
     return (
         db.query(models.Document)
-        .filter(models.Document.user_id == user_id)
+        .filter(models.Document.user_id == user_id, models.Document.session_id == session_id)
         .order_by(models.Document.id.desc())
         .offset(skip)
         .limit(limit)
@@ -167,8 +168,12 @@ def get_documents(db: Session, user_id: int, skip: int = 0, limit: int = 100):
     )
 
 
-def create_document(db: Session, filename: str, num_chunks: int, user_id: int) -> models.Document:
-    db_doc = models.Document(filename=filename, num_chunks=num_chunks, user_id=user_id)
+def create_document(
+    db: Session, filename: str, num_chunks: int, user_id: int, session_id: int
+) -> models.Document:
+    db_doc = models.Document(
+        filename=filename, num_chunks=num_chunks, user_id=user_id, session_id=session_id
+    )
     db.add(db_doc)
     db.commit()
     db.refresh(db_doc)
@@ -182,6 +187,71 @@ def delete_document(db: Session, doc_id: int, user_id: int) -> bool:
     db.delete(db_doc)
     db.commit()
     return True
+
+
+# ---------- ChatSession / ChatMessage ----------
+
+def create_chat_session(db: Session, user_id: int, title: str) -> models.ChatSession:
+    session = models.ChatSession(user_id=user_id, title=title)
+    db.add(session)
+    db.commit()
+    db.refresh(session)
+    return session
+
+
+def get_chat_sessions(db: Session, user_id: int) -> list[models.ChatSession]:
+    return (
+        db.query(models.ChatSession)
+        .filter(models.ChatSession.user_id == user_id)
+        .order_by(models.ChatSession.updated_at.desc())
+        .all()
+    )
+
+
+def get_chat_session(db: Session, session_id: int, user_id: int) -> Optional[models.ChatSession]:
+    return (
+        db.query(models.ChatSession)
+        .filter(models.ChatSession.id == session_id, models.ChatSession.user_id == user_id)
+        .first()
+    )
+
+
+def delete_chat_session(db: Session, session_id: int, user_id: int) -> bool:
+    session = get_chat_session(db, session_id, user_id)
+    if session is None:
+        return False
+    db.query(models.ChatMessage).filter(models.ChatMessage.session_id == session_id).delete()
+    db.delete(session)
+    db.commit()
+    return True
+
+
+def add_chat_message(
+    db: Session, session_id: int, role: str, content: str, sources: Optional[list[str]] = None
+) -> models.ChatMessage:
+    message = models.ChatMessage(
+        session_id=session_id,
+        role=role,
+        content=content,
+        sources=json.dumps(sources or []),
+    )
+    db.add(message)
+
+    session = db.get(models.ChatSession, session_id)
+    session.updated_at = datetime.datetime.utcnow()
+
+    db.commit()
+    db.refresh(message)
+    return message
+
+
+def get_chat_messages(db: Session, session_id: int) -> list[models.ChatMessage]:
+    return (
+        db.query(models.ChatMessage)
+        .filter(models.ChatMessage.session_id == session_id)
+        .order_by(models.ChatMessage.id.asc())
+        .all()
+    )
 
 
 # ---------- TrackerRow ----------

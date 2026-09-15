@@ -19,7 +19,7 @@ def load_documents(file_path: str):
     raise ValueError(f"Unsupported file type: {ext}")
 
 
-def ingest_file(file_path: str, doc_id: int, filename: str, user_id: int) -> int:
+def ingest_file(file_path: str, doc_id: int, filename: str, user_id: int, session_id: int) -> int:
     documents = load_documents(file_path)
     chunks = _splitter.split_documents(documents)
 
@@ -27,6 +27,7 @@ def ingest_file(file_path: str, doc_id: int, filename: str, user_id: int) -> int
         chunk.metadata["doc_id"] = doc_id
         chunk.metadata["source"] = filename
         chunk.metadata["user_id"] = user_id
+        chunk.metadata["session_id"] = session_id
 
     if chunks:
         ids = [f"{doc_id}-{i}" for i in range(len(chunks))]

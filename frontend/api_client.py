@@ -153,16 +153,19 @@ def delete_tracker_row(row_id: int) -> None:
 
 # ---------- Documents ----------
 
-def get_documents() -> list[dict]:
-    resp = requests.get(_url("/documents/"), headers=_auth_headers(), timeout=TIMEOUT)
+def get_documents(session_id: int) -> list[dict]:
+    resp = requests.get(
+        _url("/documents/"), params={"session_id": session_id}, headers=_auth_headers(), timeout=TIMEOUT
+    )
     resp.raise_for_status()
     return resp.json()
 
 
-def upload_document(filename: str, file_bytes: bytes, content_type: str) -> dict:
+def upload_document(filename: str, file_bytes: bytes, content_type: str, session_id: int) -> dict:
     resp = requests.post(
         _url("/documents/upload"),
         files={"file": (filename, file_bytes, content_type)},
+        data={"session_id": session_id},
         headers=_auth_headers(),
         timeout=60,
     )
@@ -183,10 +186,15 @@ def get_models() -> list[str]:
     return resp.json()
 
 
-def chat(message: str, model: str | None = None, history: list[dict] | None = None) -> dict:
+def chat(
+    message: str,
+    model: str | None = None,
+    history: list[dict] | None = None,
+    session_id: int | None = None,
+) -> dict:
     resp = requests.post(
         _url("/chat/"),
-        json={"message": message, "model": model, "history": history or []},
+        json={"message": message, "model": model, "history": history or [], "session_id": session_id},
         headers=_auth_headers(),
         timeout=120,
     )
@@ -194,10 +202,15 @@ def chat(message: str, model: str | None = None, history: list[dict] | None = No
     return resp.json()
 
 
-def chat_stream(message: str, model: str | None = None, history: list[dict] | None = None):
+def chat_stream(
+    message: str,
+    model: str | None = None,
+    history: list[dict] | None = None,
+    session_id: int | None = None,
+):
     with requests.post(
         _url("/chat/stream"),
-        json={"message": message, "model": model, "history": history or []},
+        json={"message": message, "model": model, "history": history or [], "session_id": session_id},
         headers=_auth_headers(),
         timeout=120,
         stream=True,
@@ -206,3 +219,28 @@ def chat_stream(message: str, model: str | None = None, history: list[dict] | No
         for line in resp.iter_lines(decode_unicode=True):
             if line:
                 yield line
+
+
+def get_chat_sessions() -> list[dict]:
+    resp = requests.get(_url("/chat/sessions"), headers=_auth_headers(), timeout=TIMEOUT)
+    resp.raise_for_status()
+    return resp.json()
+
+
+def create_chat_session() -> dict:
+    resp = requests.post(_url("/chat/sessions"), headers=_auth_headers(), timeout=TIMEOUT)
+    resp.raise_for_status()
+    return resp.json()
+
+
+def get_chat_session_messages(session_id: int) -> list[dict]:
+    resp = requests.get(
+        _url(f"/chat/sessions/{session_id}/messages"), headers=_auth_headers(), timeout=TIMEOUT
+    )
+    resp.raise_for_status()
+    return resp.json()
+
+
+def delete_chat_session(session_id: int) -> None:
+    resp = requests.delete(_url(f"/chat/sessions/{session_id}"), headers=_auth_headers(), timeout=TIMEOUT)
+    resp.raise_for_status()

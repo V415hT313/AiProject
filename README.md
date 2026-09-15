@@ -10,7 +10,13 @@ all backed by your own machine, your own data, and a locally-running LLM.
   documents, and chat/RAG data are fully isolated from every other user's.
 - **AI Chatbot** — ask questions about documents you upload; answers are grounded in their
   content via Retrieval-Augmented Generation, streamed token-by-token, with source citations.
-  Attach a PDF/TXT/MD file directly from the chat box to add it to the knowledge base.
+  Attach a PDF/TXT/MD file directly from the chat box to add it to that chat's knowledge base —
+  **documents are scoped per chat**, so a file you attach in one conversation is never visible or
+  searchable from another; start a new chat and it has zero access to any other chat's documents.
+  Conversations are saved as chat history — pick up an old chat from the sidebar and it
+  continues with full context, or start a fresh one with "New Chat". A "Save chat as note"
+  button snapshots the current conversation into your Notes (a one-time copy, not a live link —
+  it won't change if you keep chatting afterward).
 - **To-do List** — checkboxes, color-coded priorities (🔴 high / 🟡 medium / 🟢 low).
 - **Notes** — markdown editor with a live side-by-side preview.
 - **Tracker** — a spreadsheet-style grid (add/edit/delete rows inline) with Excel export.
@@ -29,8 +35,11 @@ Streamlit frontend  →  FastAPI backend  →  Postgres (data)
 - **Auth**: JWT-based — every protected endpoint requires a `Bearer` token obtained via `/auth/login`,
   and every query is scoped to the authenticated user (`user_id` on every row, plus a `user_id`
   metadata filter on every ChromaDB vector).
-- **Data layer**: Postgres for structured data (users, todos, notes, tracker rows, document metadata).
+- **Data layer**: Postgres for structured data (users, todos, notes, tracker rows, document
+  metadata, chat sessions/messages). Each document belongs to exactly one chat session.
 - **AI layer**: LangChain + ChromaDB (vector store) + Ollama (local LLM and embedding model).
+  Every vector chunk is tagged with both `user_id` and `session_id`, so retrieval for a chat
+  only ever searches documents attached to that specific chat.
 
 ## Tech stack
 
