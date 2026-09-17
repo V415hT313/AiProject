@@ -168,6 +168,10 @@ def get_documents(db: Session, user_id: int, session_id: int, skip: int = 0, lim
     )
 
 
+def get_document_count(db: Session, user_id: int) -> int:
+    return db.query(models.Document).filter(models.Document.user_id == user_id).count()
+
+
 def create_document(
     db: Session, filename: str, num_chunks: int, user_id: int, session_id: int
 ) -> models.Document:

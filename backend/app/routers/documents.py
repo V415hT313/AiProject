@@ -19,6 +19,14 @@ def _get_owned_session(db: Session, session_id: int, user_id: int) -> models.Cha
     return session
 
 
+@router.get("/count")
+def count_documents(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user),
+):
+    return {"count": crud.get_document_count(db, user_id=current_user.id)}
+
+
 @router.get("/", response_model=list[schemas.DocumentOut])
 def list_documents(
     session_id: int,

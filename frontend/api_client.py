@@ -161,6 +161,12 @@ def get_documents(session_id: int) -> list[dict]:
     return resp.json()
 
 
+def get_document_count() -> int:
+    resp = requests.get(_url("/documents/count"), headers=_auth_headers(), timeout=TIMEOUT)
+    resp.raise_for_status()
+    return resp.json()["count"]
+
+
 def upload_document(filename: str, file_bytes: bytes, content_type: str, session_id: int) -> dict:
     resp = requests.post(
         _url("/documents/upload"),

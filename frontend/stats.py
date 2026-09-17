@@ -1,4 +1,5 @@
-from api_client import get_documents, get_notes, get_todos
+from api_client import get_document_count as _get_document_count
+from api_client import get_notes, get_todos
 
 
 def get_open_todo_count() -> int:
@@ -13,4 +14,4 @@ def get_recent_notes(limit: int = 5) -> list[dict]:
 
 
 def get_document_count() -> int:
-    return len(get_documents())
+    return _get_document_count()
