@@ -1,6 +1,6 @@
 # 🤖 R2D2
 
-**Your own AI-powered second brain — local-first, private, and built to actually get things done.**
+**Your own AI-powered second brain - local-first, private, and built to actually get things done.**
 
 R2D2 is a self-hosted personal workspace: a document-grounded AI chatbot, a to-do list, notes
 with live markdown preview, and a habit/expense tracker, running on your own machine, on your
@@ -28,3 +28,8 @@ own data, for as many accounts as you need.
 - 📊 **Tracker** - a spreadsheet-style grid (add/edit/delete rows inline), a Status dropdown
   (Start / In Progress / Done), a date picker, and one-click Excel export.
 - 🏠 **Home dashboard** - at-a-glance stats: open todos, ingested document count, recent notes.
+
+
+# Video -
+
+https://github.com/user-attachments/assets/e256bc63-db62-4e1c-a6f7-de350159c94f
